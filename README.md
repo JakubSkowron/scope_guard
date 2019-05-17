@@ -1,5 +1,5 @@
 # scope_guard
-C++ scope guard, a way to run arbitrary code at scope exit.
+C++ scope guard, a way to run code at exit of current scope. The code is in public domain.
 
 Example:
 
@@ -22,5 +22,5 @@ If you don't need to capture any variables use empty capture:
 ```c++
  scope_guard [] {
   std::puts("at scope exit");
- }
+ };
 ```

@@ -12,7 +12,7 @@
  *
  *  scope_guard [] {
  *    std::puts("at scope exit");
- *  }
+ *  };
  */
 
 #ifndef SCOPE_GUARD_H
