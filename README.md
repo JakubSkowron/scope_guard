@@ -10,17 +10,32 @@ Example:
     return 1;
   }
 
-  scope_guard [=] {
+  SCOPE_GUARD [=] {
     std::fclose(file);
   };
 ```
 
 In example above `std::fclose` will be called in any case when execution leaves current function, code block, etc.
 
+Another example:
+
+```c++
+ auto guard1 = scope_guard::make([]{std::puts("Test1");});
+ void f(void);
+ auto guard2 = scope_guard::make(f);
+```
+
+Or using macro:
+
+```c++
+ void f(void);
+ SCOPE_GUARD f;
+```
+
 If you don't need to capture any variables use empty capture:
 
 ```c++
- scope_guard [] {
+ SCOPE_GUARD [] {
   std::puts("at scope exit");
  };
 ```
