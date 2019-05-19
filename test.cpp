@@ -1,7 +1,9 @@
+#include "scope_guard.h"
+
 #include <cstdio>
 #include <string>
 #include <sstream>
-#include "scope_guard.h"
+#include <functional>
 
 std::ostringstream result;
 template<typename T>
@@ -22,8 +24,11 @@ void owner( scope_guard::guard_object<void()> t ) {
   owner_template(std::move(t));
 }
 
+void owner8(std::function<void()> f) {
+  SCOPE_GUARD(f);
+}
 
-const char* expected = "1|2|5|3|4f|4f|moved 4|moved 4|~4f|6|~6|7|~5|~4f|~3|~2|~1 OK|";
+const char* expected = "1|2|5|3|4f|4f|moved 4|moved 4|~4f|6|~6|7 (cancel)|8|~8|~5|~4f|~3|~2|~1 OK|";
 void test() {
   const char* ok = "OK";
   log("1");
@@ -58,12 +63,20 @@ void test() {
   auto guard6 = scope_guard::make([]{log("~6");});
   guard6.destroy();
 
-  log("7");
+  log("7 (cancel)");
   auto guard7 = scope_guard::make([]{log("~7");});
   guard7.cancel();
+
+  log("8");
+  auto f8 =[] {
+    log("~8");
+  };
+  owner8(f8);
 }
 
 void new_owner(scope_guard::guard_object<void()>) {}
+void new_owner(scope_guard::guard_object<std::function<void()>>) {}
+
 
 void test2() {
  // Without macro:
@@ -83,6 +96,12 @@ void test2() {
    SCOPE_GUARD(f);
    auto guard3 = scope_guard::empty{} + f; // synonymous to scope_guard::make(f);
    auto guard4 = scope_guard::empty{} + []{}; // synonymous to scope_guard::make([]{});
+
+   auto guard5 = scope_guard::guard_object<std::function<void()>>([]{});
+
+   auto guard6 = scope_guard::make<std::function<void()>>([]{});
+   void new_owner(scope_guard::guard_object<std::function<void()>>);
+   new_owner(std::move(guard6));
 }
 
 int main() {
