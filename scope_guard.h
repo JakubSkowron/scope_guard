@@ -1,70 +1,94 @@
-/* Usage:
+/* Basic usage:
  *
- *  SCOPE_GUARD [=] {
- *    std::fclose(file);
- *  };
+ *   SCOPE_GUARD [=] {
+ *     std::fclose(file);
+ *   };
  *
- *  SCOPE_GUARD [] {
- *    std::puts("at scope exit");
- *  };
+ *   SCOPE_GUARD [] {
+ *     std::puts("at scope exit");
+ *   };
  *
- *  auto guard1 = scope_guard::make( []{std::puts("Goodbye");} );
+ * Without macros:
  *
- *  void f(void);
- *  SCOPE_GUARD f;
- *  auto guard2 = scope_guard::make(f);
+ *   auto guard = scope_guard::make([]{std::puts("~guard");});
+ *
+ * Passing ownership:
+ *
+ *   auto guard = scope_guard::make(f);
+ *   // for lambdas you can use a template instead of naming the type explicitly
+ *   void new_owner(scope_guard::guard_object<void()>);
+ *   new_owner(std::move(guard));
+ *
+ * More usage:
+ *
+ *   void f(void);
+ *   SCOPE_GUARD(f);  // declaration of a scope_guard::guard_object
+ *
+ *   auto guard = scope_guard::empty{} + x; // synonymous to scope_guard::make(x);
+ *
+ *   static SCOPE_GUARD [] {
+ *     std::puts("at exit");
+ *   };
+ *
  */
 
 #ifndef SCOPE_GUARD_H
 #define SCOPE_GUARD_H
 
-#include <utility>
-
 namespace scope_guard {
 
 template<typename T>
-class _impl {
+class guard_object {
 public:
-  _impl(T func) : func(std::move(func)) {}
-  ~_impl() {
-    if(active)
-      func();
+  guard_object(T func) : func(std::move(func)) {}
+  ~guard_object() {
+    if(active) func();
   }
 
-  _impl(const _impl&) = delete;
-  _impl& operator=(const _impl&) = delete;
+  guard_object(const guard_object&) = delete;
+  guard_object& operator=(const guard_object&) = delete;
 
-  _impl(_impl&& other) :
+  // move constructor
+  guard_object(guard_object&& other) :
     func(std::move(other.func)),
     active(other.active) {
     other.active = false;
   }
-  _impl& operator=(_impl&&) = delete;
+  guard_object& operator=(guard_object&&) = delete;
+
+  void cancel() { active = false; }
+  void destroy() {
+    if(active) func();
+    active = false;
+  }
 
 private:
-  T func;
+  // std::decay needed for plain functions to become pointers to functions
+  typename std::decay<T>::type func;
   bool active = true;
 };
 
-// Used to infer template parameter for scope_guard::_impl
+// Used to infer template parameter for scope_guard::guard_object
+// std::remove_reference for plain functions, e.g: void(&)() to become void()
 template<typename T>
-_impl<T> make(T&& func) {
-  return _impl<T>{std::forward<T>(func)};
+guard_object<typename std::remove_reference<T>::type> make(T&& func) {
+  return {std::forward<T>(func)};
 }
 
-// Used to infer template parameter for scope_guard::_impl using operator+
-struct _empty {
+// operator+ used to infer template parameter for scope_guard::guard_object
+struct empty {
   template<typename T>
-  _impl<T> operator+(T&& func) {
-    return _impl<T>{std::forward<T>(func)};
+  guard_object<typename std::remove_reference<T>::type> operator+(T&& func) {
+    return {std::forward<T>(func)};
   }
 };
 
 }  //namespace _scope_guard
 
+// Macro magic
 #define SCOPE_GUARD_CONCAT2(X,Y) X##Y
 #define SCOPE_GUARD_CONCAT(X,Y) SCOPE_GUARD_CONCAT2(X,Y)
 
-#define SCOPE_GUARD auto SCOPE_GUARD_CONCAT(_scope_guard_, __LINE__) = scope_guard::_empty{} +
+#define SCOPE_GUARD auto SCOPE_GUARD_CONCAT(_scope_guard_, __LINE__) = scope_guard::empty{} +
 
 #endif
