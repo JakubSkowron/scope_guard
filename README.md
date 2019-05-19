@@ -1,6 +1,5 @@
 # scope_guard
-C++ scope guard, a way to run code at exit of current scope. The code is in public domain.
-Creates objcect which will call a function in its destructor. Can be moved or cancelled.
+C++ scope guard, a way to run code at exit of current scope. Creates object which will call a function in its destructor. Can be moved or cancelled. Public Domain.
 
 Basic usage:
 
@@ -69,3 +68,4 @@ In example above `std::fclose` will be called in any case when execution leaves 
 
 Works with C++11.
 
+Author: Jakub Skowron <jskowron183@gmail.com>
