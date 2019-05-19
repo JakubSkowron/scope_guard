@@ -15,14 +15,19 @@
  * Passing ownership:
  *
  *   auto guard = scope_guard::make(f);
- *   // for lambdas you can use a template instead of naming the type explicitly
  *   void new_owner(scope_guard::guard_object<void()>);
+ *   new_owner(std::move(guard));
+ *
+ * For lambdas you can use std::function:
+ *
+ *   auto guard = scope_guard::make<std::function<void()>>([]{});
+ *   void new_owner(scope_guard::guard_object<std::function<void()>>);
  *   new_owner(std::move(guard));
  *
  * More usage:
  *
  *   void f(void);
- *   SCOPE_GUARD(f);  // declaration of a scope_guard::guard_object
+ *   SCOPE_GUARD(f);  // initialization of a scope_guard::guard_object
  *
  *   auto guard = scope_guard::empty{} + x; // synonymous to scope_guard::make(x);
  *
@@ -34,6 +39,8 @@
 
 #ifndef SCOPE_GUARD_H
 #define SCOPE_GUARD_H
+
+#include <utility>
 
 namespace scope_guard {
 
